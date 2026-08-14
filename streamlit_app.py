@@ -15,45 +15,54 @@ NVIDIA_API_KEY = "nvapi-2zVRPeOxMnv6MuFzoaqc0pFWoy2CHVxjBIRL-TpdgqY9pJjkqhqUM31M
 
 # مدخلات المهندس (واجهة نظيفة وبسيطة)
 engineer_name = st.text_input("اسم المهندس المعماري:")
-prompt = st.text_area("وصف التصميم المعماري المطلوب (Prompt):", placeholder="مثال: فيلا مودرن بأسلوب إقليمي معاصر، واجهات بارامترية مع شناشيل، إضاءة ليلية، 8k...")
+prompt = st.text_area("وصف التصميم المعماري المطلوب (Prompt):", placeholder="مثال: فيلا مودرن بأسلوب إقليمي معاصر، واجهات بارامترية...")
 
 if st.button("توليد التصميم وحفظه في الذاكرة ⚡", use_container_width=True):
     if not engineer_name or not prompt:
         st.warning("⚠️ يرجى كتابة اسم المهندس ووصف التصميم أولاً.")
     else:
-        st.info("🔄 جاري إرسال الطلب إلى محركات الذكاء الاصطناعي...")
+        st.info("🔄 جاري الاتصال بمحرك الاستوديو الذكي لتوليد التصميم...")
         
         try:
-            # استخدام الرابط الموحد والجديد لنفيديا
-            invoke_url = "https://integrate.api.nvidia.com/v1/images/generations"
+            # الرابط الصحيح والمباشر المخصص للصور في نيفيديا
+            invoke_url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-3-medium"
+            
             headers = {
                 "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Accept": "application/json",
                 "Content-Type": "application/json",
-                "Accept": "application/json"
             }
-            # إرسال الوصف مع إضافة كلمات مفتاحية معمارية إنجليزية لزيادة دقة الموديل
+            
+            # إعدادات الصورة المعمارية الاحترافية
             payload = {
-                "model": "stabilityai/stable-diffusion-3-medium",
-                "prompt": prompt + ", luxury architectural photography, highly detailed, photorealistic, 8k resolution, contemporary Arabic touches",
-                "response_format": "b64_json"
+                "prompt": prompt + ", professional architectural photography, hyper-realistic, 8k resolution, highly detailed, photorealistic",
+                "cfg_scale": 5,
+                "aspect_ratio": "16:9",
+                "seed": 0,
+                "steps": 25,
+                "negative_prompt": "blurry, low quality, distorted, bad architecture, deformed"
             }
 
             response = requests.post(invoke_url, headers=headers, json=payload)
             
             if response.status_code == 200:
                 data = response.json()
-                # استخراج الصورة من الرد
-                image_base64 = data.get('data', [{}])[0].get('b64_json', '')
+                
+                # استخراج الصورة بأكثر من طريقة لضمان عدم حدوث أخطاء
+                image_base64 = data.get('image')
+                if not image_base64 and 'artifacts' in data:
+                    image_base64 = data['artifacts'][0].get('base64')
                 
                 if image_base64:
+                    # تحويل الصورة وعرضها
                     image_bytes = base64.b64decode(image_base64)
                     st.success("✨ تم معالجة الطلب وتوليد التصميم بنجاح!")
                     st.image(image_bytes, caption=f"تصميم المهندس: {engineer_name}", use_container_width=True)
                 else:
-                    st.error("❌ تم الاتصال ولكن لم يتم استرجاع الصورة. تأكد من الوصف المدخل.")
+                    st.error("❌ تم الاتصال بنجاح ولكن نيفيديا لم ترجع الصورة. جرب وصفاً آخر.")
             else:
-                # هذه المرة سيظهر لنا سبب الخطأ بالضبط إذا حدث
-                st.error(f"❌ خطأ في الاتصال بالمحرك: {response.status_code} - {response.text}")
+                # إظهار رسالة الخطأ من نيفيديا مباشرة لنعرف السبب إن وجد
+                st.error(f"❌ فشل من محرك نيفيديا: {response.status_code} - {response.text}")
                 
         except Exception as e:
-            st.error(f"❌ حدث خطأ تقني: {e}")
+            st.error(f"❌ حدث خطأ تقني في الموقع: {e}")
