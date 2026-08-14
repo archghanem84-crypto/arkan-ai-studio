@@ -6,56 +6,55 @@ import base64
 st.set_page_config(page_title="منصة أركان المعمارية الذكية", page_icon="🏢", layout="centered")
 
 st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 منصة أركان للاستوديو المعماري الذكي</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>نظام التصميم المعماري المتكامل المربوط بالسحابة</p>", unsafe_allow_html=True)
-
+st.markdown("<p style='text-align: center; color: #94a3b8;'>النظام المؤسسي التراكمي المربوط بالسحابة</p>", unsafe_allow_html=True)
 st.divider()
 
-# مفتاحك السري
-NVIDIA_API_KEY = "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"
+# مفتاحك السري الجديد (مفعل ونشط)
+NVIDIA_API_KEY = "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"
 
 # مدخلات المهندس
 engineer_name = st.text_input("اسم المهندس المعماري:")
-prompt = st.text_area("وصف التصميم المعماري المطلوب (Prompt):", placeholder="مثال: فيلا مودرن بأسلوب عربي معاصر...")
+prompt = st.text_area("وصف التصميم المعماري (Prompt):", placeholder="مثال: فيلا مودرن بأسلوب يمني، طيرمانة حديثة، إضاءة ليلية...")
 
-if st.button("توليد التصميم وحفظه في الذاكرة ⚡", use_container_width=True):
+if st.button("توليد التصميم ⚡", use_container_width=True):
     if not engineer_name or not prompt:
-        st.warning("⚠️ يرجى كتابة اسم المهندس ووصف التصميم أولاً.")
+        st.warning("⚠️ يرجى تعبئة الحقول.")
     else:
-        st.info("🔄 جاري الاتصال بمحرك الاستوديو الذكي لتوليد التصميم...")
+        st.info("🔄 جاري إرسال الطلب لمحرك NVIDIA الذكي...")
         
         try:
-            # الرابط العام الموحد لـ Stable Diffusion 3
-            invoke_url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-3-medium"
+            # الرابط المباشر للنموذج الذي قمت بتفعيله
+            invoke_url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-3-5-large"
             
             headers = {
                 "Authorization": f"Bearer {NVIDIA_API_KEY}",
+                "Accept": "application/json",
                 "Content-Type": "application/json",
-                "Accept": "application/json"
             }
             
             payload = {
-                "prompt": prompt + ", professional architectural photography, hyper-realistic, 8k resolution, highly detailed, photorealistic",
+                "prompt": prompt + ", architectural photography, hyper-realistic, 8k resolution",
                 "cfg_scale": 5,
                 "aspect_ratio": "16:9",
                 "seed": 0,
                 "steps": 25,
-                "negative_prompt": "blurry, low quality, distorted, bad architecture, deformed"
+                "negative_prompt": "blurry, low quality, distorted"
             }
 
             response = requests.post(invoke_url, headers=headers, json=payload)
             
             if response.status_code == 200:
                 data = response.json()
-                # استخراج الصورة
                 image_base64 = data.get('image')
+                
                 if image_base64:
                     image_bytes = base64.b64decode(image_base64)
-                    st.success("✨ تم معالجة الطلب وتوليد التصميم بنجاح!")
-                    st.image(image_bytes, caption=f"تصميم المهندس: {engineer_name}", use_column_width=True)
+                    st.success("✨ تم توليد التصميم بنجاح!")
+                    st.image(image_bytes, caption=f"تصميم: {engineer_name}", use_column_width=True)
                 else:
-                    st.error("❌ تم الاتصال بنجاح ولكن نيفيديا لم ترجع بيانات الصورة.")
+                    st.error("❌ لم يتم استرجاع الصورة من الخادم.")
             else:
-                st.error(f"❌ فشل الاتصال: {response.status_code} - {response.text}")
+                st.error(f"❌ خطأ في الاتصال: {response.status_code} - {response.text}")
                 
         except Exception as e:
-            st.error(f"❌ خطأ تقني: {e}")
+            st.error(f"❌ حدث خطأ تقني: {e}")
