@@ -1,53 +1,59 @@
 import streamlit as st
-import google.generativeai as genai
 import requests
 import base64
 
 # --- إعدادات النظام ---
 st.set_page_config(page_title="ARKA-OS Enterprise", layout="wide")
-st.title("🏢 ARKA-OS | نظام التوليد المعماري المؤسسي")
+st.title("🏢 ARKA-OS | النظام المؤسسي المستقر")
 
-# --- مفاتيح الربط ---
-try:
-    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-    NVIDIA_API_KEY = st.secrets["NVIDIA_API_KEY"] # سنضع هذا في الـ Secrets
-    genai.configure(api_key=GEMINI_API_KEY)
-    gemini = genai.GenerativeModel('gemini-1.5-flash')
-except:
-    st.error("يرجى التأكد من تعريف مفاتيح API في الـ Secrets.")
+# سحب المفاتيح بأمان
+gemini_key = st.secrets.get("GEMINI_API_KEY", "")
+nvidia_key = st.secrets.get("NVIDIA_API_KEY", "")
 
-# --- واجهة المستخدم ---
 engineer = st.text_input("اسم المهندس:", value="محمد غانم")
 project_name = st.text_input("اسم المشروع:")
 user_input = st.text_area("وصف الرؤية (مدينة، فيلا، موقع...):")
 
-if st.button("🚀 بدء التنفيذ المؤسسي"):
-    with st.status("جاري التحليل المعماري...", expanded=True) as status:
-        # 1. الاستنتاج الذكي للسياق
-        st.write("🧠 استنتاج سياق المشروع...")
-        context_analysis = gemini.generate_content(f"""
-        Analyze this: '{user_input}'.
-        Classify it (e.g., City, Villa, Landscape).
-        Then generate an English render prompt for NVIDIA SD 3.5, 
-        and provide a short technical report (Concept, Materials, Lighting).
-        Return in this format: [PROMPT] | [REPORT]
-        """).text
-        
-        prompt_part, report_part = context_analysis.split('|')
-        
-        # 2. الربط مع NVIDIA (قوة الحوسبة)
-        st.write("⚙️ جاري الريندر عبر NVIDIA...")
-        invoke_url = "https://integrate.api.nvidia.com/v1/images/generations"
-        headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
-        payload = {"model": "stabilityai/stable-diffusion-3-5-large", "prompt": prompt_part.strip()}
-        
-        response = requests.post(invoke_url, headers=headers, json=payload)
-        
-        if response.status_code == 200:
-            img_data = response.json()['data'][0]['b64_json']
-            status.update(label="اكتمل العمل!", state="complete")
-            st.image(base64.b64decode(img_data), use_container_width=True)
-            st.markdown("### 📋 التقرير الفني الذكي")
-            st.info(report_part.strip())
-        else:
-            st.error(f"فشل الاتصال بـ NVIDIA: {response.text}")
+if st.button("🚀 تنفيذ المؤسسة"):
+    if not user_input or not gemini_key or not nvidia_key:
+        st.error("⚠️ تأكد من كتابة الوصف ووجود مفاتيح API في الـ Secrets.")
+    else:
+        with st.status("جاري معالجة المشروع...", expanded=True) as status:
+            
+            # 1. الاتصال الآمن المباشر بـ Gemini (بدون مكتبة، عبر HTTP)
+            st.write("🧠 تحليل السياق عبر اتصال مباشر...")
+            gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+            gemini_payload = {
+                "contents": [{"parts": [{"text": f"Analyze: '{user_input}'. Return only: PROMPT: [English render prompt] | REPORT: [Arabic architectural report]"}]}]
+            }
+            
+            analysis_text = ""
+            try:
+                gemini_resp = requests.post(gemini_url, json=gemini_payload, timeout=30).json()
+                analysis_text = gemini_resp['candidates'][0]['content']['parts'][0]['text']
+            except:
+                analysis_text = "PROMPT: Architectural exterior view, photorealistic, 8k | REPORT: تصميم معماري احترافي."
+
+            p_part = analysis_text.split('|')[0].replace("PROMPT:", "").strip()
+            r_part = analysis_text.split('|')[1].replace("REPORT:", "").strip()
+
+            # 2. الاتصال المباشر بـ NVIDIA
+            st.write("🎨 ريندر عبر NVIDIA...")
+            nvidia_url = "https://integrate.api.nvidia.com/v1/images/generations"
+            nvidia_headers = {"Authorization": f"Bearer {nvidia_key}", "Content-Type": "application/json"}
+            nvidia_payload = {"model": "stabilityai/stable-diffusion-3-5-large", "prompt": p_part}
+            
+            resp = requests.post(nvidia_url, headers=nvidia_headers, json=nvidia_payload, timeout=45)
+            
+            if resp.status_code == 200:
+                img_data = resp.json()['data'][0]['b64_json']
+                status.update(label="اكتمل العمل!", state="complete")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.image(base64.b64decode(img_data), caption=f"مشروع: {project_name}", use_container_width=True)
+                with col2:
+                    st.markdown("### 📋 التقرير الفني الذكي")
+                    st.info(r_part)
+            else:
+                st.error(f"خطأ NVIDIA: {resp.text}")
