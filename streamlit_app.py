@@ -24,36 +24,36 @@ if st.button("توليد التصميم وحفظه في الذاكرة ⚡", use
         st.info("🔄 جاري إرسال الطلب إلى محركات الذكاء الاصطناعي...")
         
         try:
-            # إعداد طلب الاتصال بمحرك إنفيديا للتوليد البصري
-            invoke_url = "https://ai.api.nvidia.com/v1/genai/stabilityai/stable-diffusion-3-medium"
+            # استخدام الرابط الموحد والجديد لنفيديا
+            invoke_url = "https://integrate.api.nvidia.com/v1/images/generations"
             headers = {
                 "Authorization": f"Bearer {NVIDIA_API_KEY}",
-                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             }
+            # إرسال الوصف مع إضافة كلمات مفتاحية معمارية إنجليزية لزيادة دقة الموديل
             payload = {
-                "prompt": prompt + ", luxury architectural photography, highly detailed, photorealistic, 8k resolution",
-                "cfg_scale": 5,
-                "aspect_ratio": "16:9",
-                "seed": 0,
-                "steps": 25,
-                "negative_prompt": "blurry, low quality, distorted, watermark"
+                "model": "stabilityai/stable-diffusion-3-medium",
+                "prompt": prompt + ", luxury architectural photography, highly detailed, photorealistic, 8k resolution, contemporary Arabic touches",
+                "response_format": "b64_json"
             }
 
             response = requests.post(invoke_url, headers=headers, json=payload)
             
             if response.status_code == 200:
                 data = response.json()
-                image_base64 = data.get('image')
+                # استخراج الصورة من الرد
+                image_base64 = data.get('data', [{}])[0].get('b64_json', '')
                 
                 if image_base64:
-                    # تحويل الصورة إلى صيغة قابلة للعرض
                     image_bytes = base64.b64decode(image_base64)
                     st.success("✨ تم معالجة الطلب وتوليد التصميم بنجاح!")
                     st.image(image_bytes, caption=f"تصميم المهندس: {engineer_name}", use_container_width=True)
                 else:
-                    st.error("❌ تم الاتصال ولكن لم يتم استرجاع الصورة. حاول تعديل الوصف.")
+                    st.error("❌ تم الاتصال ولكن لم يتم استرجاع الصورة. تأكد من الوصف المدخل.")
             else:
-                st.error(f"❌ خطأ في الاتصال بالمحرك: {response.status_code}")
+                # هذه المرة سيظهر لنا سبب الخطأ بالضبط إذا حدث
+                st.error(f"❌ خطأ في الاتصال بالمحرك: {response.status_code} - {response.text}")
                 
         except Exception as e:
             st.error(f"❌ حدث خطأ تقني: {e}")
