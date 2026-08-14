@@ -1,75 +1,75 @@
 import streamlit as st
 import google.generativeai as genai
-import urllib.parse
+import requests
+import base64
 
-# إعدادات الصفحة الاحترافية لمنصة أركان
-st.set_page_config(page_title="منصة أركان المعمارية الذكية", page_icon="🏢", layout="centered")
+# إعدادات الصفحة
+st.set_page_config(page_title="منصة أركان المعمارية", page_icon="🏢", layout="centered")
 
-st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 منصة أركان للاستوديو المعماري الذكي</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>نظام الذكاء الاصطناعي المدمج (التحليل الهندسي + التوليد البصري)</p>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 نظام أركان المعماري (النسخة الذكية)</h1>", unsafe_allow_html=True)
 st.divider()
 
-# مفتاح Google AI Studio الخاص بالمنصة
+# مفاتيح النظام
 GEMINI_API_KEY = "AQ.Ab8RN6JhFsfK-Vf36xqPKE_z8K9ptqsV4EWl29k3Xecc6kgC7Q"
+NVIDIA_API_KEY = "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"
+
 genai.configure(api_key=GEMINI_API_KEY)
 
-# واجهة المهندس
-engineer_name = st.text_input("اسم المهندس المعماري:", placeholder="أدخل اسمك هنا...")
-prompt = st.text_area(
-    "وصف التصميم المعماري (اكتب أفكارك بالعربية براحتك):", 
-    placeholder="مثال: فيلا مودرن بأسلوب إقليمي معاصر، واجهات بارامترية تدمج الشناشيل الخشبية، طيرمانة زجاجية حديثة، إضاءة ليلية دافئة..."
-)
+engineer_name = st.text_input("اسم المهندس:")
+prompt = st.text_area("وصف التصميم:")
 
-if st.button("تحليل هندسي وتوليد التصميم ⚡", use_container_width=True):
+if st.button("توليد التصميم المعماري ⚡", use_container_width=True):
     if not engineer_name or not prompt:
-        st.warning("⚠️ يرجى كتابة اسم المهندس ووصف التصميم لتبدأ المنصة عملها.")
+        st.warning("⚠️ يرجى إدخال البيانات.")
     else:
+        st.info("🧠 1. عقل النظام يحلل الطلب ويصيغه معمارياً...")
         try:
-            # =====================================================================
-            # المرحلة الأولى: العقل الذكي (Google Gemini) للتحليل والترجمة الهندسية
-            # =====================================================================
-            st.info("🧠 1. يقوم عقل النظام الآن بتحليل فكرتك وتحويلها لأوامر هندسية دقيقة...")
-            
-            # استدعاء أسرع وأذكى نموذج من جوجل
             model = genai.GenerativeModel('gemini-1.5-flash')
             
-            # برمجة شخصية الذكاء الاصطناعي ليكون خبيراً معمارياً متوافقاً مع أسلوب التصميم
+            # === العقل الذكي الجديد (بدون تقييد أعمى) ===
             system_instruction = """
-            أنت مهندس معماري محترف وخبير عالمي في كتابة أوامر (Prompts) دقيقة لبرامج الريندر والذكاء الاصطناعي.
-            المستخدم سيعطيك فكرة تصميم باللغة العربية. مهمتك هي تحويل هذه الفكرة إلى وصف إنجليزي دقيق جداً واحترافي لتوليد صورة معمارية واقعية.
+            أنت مهندس معماري خبير في صياغة أوامر (Prompts) لمحركات الذكاء الاصطناعي لتوليد الصور.
+            مهمتك: تحويل الوصف العربي إلى وصف إنجليزي دقيق جداً واحترافي.
             
-            القواعد الصارمة التي يجب اتباعها:
-            1. استخدم مصطلحات ريندر قوية مثل: Hyper-realistic, 8k resolution, Unreal Engine 5 render, architectural photography, highly detailed, ray tracing.
-            2. ركز على الإضاءة (مثل cinematic lighting, twilight, golden hour).
-            3. إذا ذكر المستخدم عناصر إقليمية مثل "طيرمانة" ترجمها إلى "modern glass-enclosed rooftop pavilion (Tayramana)". وإذا ذكر "شناشيل" ترجمها إلى "intricate wooden bay windows (Shanashil) and geometric breeze blocks".
-            4. هام جداً جداً: يجب أن تضيف في نهاية الوصف هذه الجملة حرفياً لمنع ظهور أي أشخاص: "No people, strictly empty architectural scene, unpopulated".
-            5. أخرج فقط الوصف الإنجليزي النهائي. لا تكتب أي مقدمات، لا تكتب شروحات، ولا تقل "Here is the prompt". فقط الوصف.
+            القواعد الذكية:
+            1. الموضوع الرئيسي يجب أن يكون دائماً "تصميم معماري" (مبنى، فيلا، مساحة داخلية). ابدأ الوصف دائماً بكلمات مثل: "Hyper-realistic architectural photography of..." أو "Architectural exterior visualization of...".
+            2. لا تمنع وجود الأشخاص، ولكن اجعلهم دائماً عناصر ثانوية لتوضيح المقياس. استخدم مصطلحات مثل "architectural scale figures" أو "few people walking in the background". 
+            3. يمنع منعاً باتاً أن يكون الوصف عن "بورتريه" أو صورة قريبة لوجه إنسان.
+            4. أضف مصطلحات الريندر القوية: 8k resolution, highly detailed, photorealistic, cinematic lighting, Unreal Engine 5 style.
+            5. أخرج النص الإنجليزي النهائي فقط، بدون أي شروحات إضافية.
             """
             
-            # معالجة النص
-            response = model.generate_content(system_instruction + "\n\nوصف المهندس بالعربية:\n" + prompt)
-            enhanced_english_prompt = response.text.strip()
+            response = model.generate_content(system_instruction + "\nوصف المستخدم: " + prompt)
+            arch_prompt = response.text.strip()
             
-            st.success("✅ اكتمل التحليل الهندسي! تم تجهيز أوامر الريندر الاحترافية.")
+            with st.expander("🔍 شاهد التحليل الهندسي والأوامر (اضغط للفتح)"):
+                st.write(arch_prompt)
+                
+            st.info("🎨 2. جاري التوليد عبر محرك NVIDIA القوي (Stable Diffusion 3.5)...")
             
-            # عرض الوصف الإنجليزي للمهندس ليرى كيف تطورت فكرته
-            with st.expander("🔍 شاهد الأوامر الهندسية التي كتبها النظام لمحرك الريندر (اضغط للفتح)"):
-                st.code(enhanced_english_prompt, language="text")
+            invoke_url = "https://integrate.api.nvidia.com/v1/images/generations"
+            headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
             
-            # =====================================================================
-            # المرحلة الثانية: محرك التوليد البصري لرسم الصورة
-            # =====================================================================
-            st.info("🎨 2. جاري تحويل الأوامر الهندسية إلى تحفة معمارية بصرية...")
+            # استخدمنا فلتر سلبي (Negative Prompt) ذكي يمنع الوجوه القريبة (البورتريه) والتشوهات فقط
+            payload = {
+                "model": "stabilityai/stable-diffusion-3-5-large",
+                "prompt": arch_prompt,
+                "negative_prompt": "portrait, close-up face, character design, blurry, low quality, deformed structure, poorly drawn architecture",
+                "aspect_ratio": "16:9"
+            }
             
-            # تحويل النص ليكون متوافقاً مع روابط الويب
-            encoded_prompt = urllib.parse.quote(enhanced_english_prompt)
+            response = requests.post(invoke_url, headers=headers, json=payload)
             
-            # استدعاء محرك الصور الفوري للحصول على ريندر عالي الدقة
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=576&nologo=true"
-            
-            # عرض النتيجة النهائية المبهرة
-            st.success(f"✨ اكتملت العملية بنجاح للمهندس {engineer_name}!")
-            st.image(image_url, caption=f"تصميم المهندس: {engineer_name} | (تمت المعالجة والتحليل عبر عقل المنصة الذكي)", use_container_width=True)
-            
+            if response.status_code == 200:
+                data = response.json()
+                img_b64 = data.get('data', [{}])[0].get('b64_json')
+                if img_b64:
+                    st.success("✨ تم التوليد بنجاح!")
+                    st.image(base64.b64decode(img_b64), caption=f"تصميم المهندس: {engineer_name}", use_column_width=True)
+                else:
+                    st.error("لم يتم استلام الصورة من الخادم.")
+            else:
+                st.error(f"خطأ الاتصال بـ NVIDIA: {response.status_code} - {response.text}")
+                
         except Exception as e:
-            st.error(f"❌ حدث خطأ غير متوقع في النظام: {e}")
+            st.error(f"خطأ تقني: {e}")
