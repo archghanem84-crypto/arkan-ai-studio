@@ -1,46 +1,74 @@
 import streamlit as st
+import google.generativeai as genai
 import urllib.parse
+import requests
+import base64
 
-st.set_page_config(page_title="منصة أركان المعمارية المؤسسية", layout="centered")
+# --- إعدادات النظام ---
+st.set_page_config(page_title="منصة أركان المؤسسية", page_icon="🏢", layout="wide")
 
-st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 منصة أركان المعمارية (النظام المؤسسي المتكامل)</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #94a3b8;'>التحليل الهندسي البصري + إصدار التقارير الفنية التلقائية</p>", unsafe_allow_html=True)
-st.divider()
+# استدعاء مفتاح جوجل من الأمان (Secrets)
+try:
+    api_key = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=api_key)
+    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    gemini_model = None
 
-engineer = st.text_input("اسم المهندس المسؤول:")
-client_name = st.text_input("اسم العميل / المشروع (مثلاً: أبراج القطيبي):")
-prompt = st.text_area("وصف التصميم المعماري (اكتب رؤيتك):", placeholder="مثال: فيلا مودرن بأسلوب إقليمي معاصر، واجهات بارامترية، شناشيل، مسبح عاكس...")
+# --- واجهة المستخدم الاحترافية ---
+st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 منصة أركان للاستوديو المعماري الذكي</h1>", unsafe_allow_html=True)
+st.sidebar.header("إعدادات المشروع")
 
-if st.button("تشغيل النظام المؤسسي وتوليد التصميم والتقرير ⚡", use_container_width=True):
-    if not engineer or not client_name or not prompt:
-        st.warning("⚠️ يرجى تعبئة جميع الحقول (اسم المهندس، اسم المشروع، ووصف التصميم).")
+engineer_name = st.sidebar.text_input("اسم المهندس المسؤول:")
+client_name = st.sidebar.text_input("اسم المشروع / العميل:")
+project_type = st.sidebar.selectbox("نوع المشروع:", ["فيلا سكنية", "مجمع تجاري", "تصميم داخلي", "مبنى إداري"])
+user_prompt = st.text_area("وصف الرؤية المعمارية (اكتب أفكارك):", height=150)
+
+if st.sidebar.button("تشغيل النظام المتكامل ⚡"):
+    if not all([engineer_name, client_name, user_prompt]):
+        st.error("⚠️ يرجى تعبئة كافة بيانات المشروع في القائمة الجانبية.")
     else:
-        with st.spinner("🔄 جاري معالجة الكتل المعمارية وصياغة المواصفات الفنية..."):
+        # طبقة التحليل الذكي
+        with st.status("جاري معالجة المشروع...", expanded=True) as status:
+            final_arch_prompt = ""
             
-            # 1. هندسة الأوامر البصرية (مضمونة وخالية من أي أخطاء بشرية)
-            pure_architectural_prompt = (
-                f"{prompt}, professional architectural exterior visualization, "
-                f"modern regionalist architecture, premium materials, glass and concrete, "
-                f"ray tracing, cinematic twilight lighting, 8k resolution, ultra-photorealistic, "
-                f"Unreal Engine 5 render, highly detailed, strictly empty architectural scene"
-            )
+            if gemini_model:
+                st.write("🧠 تحليل العقل الذكي...")
+                try:
+                    analysis = gemini_model.generate_content(f"""
+                    Analyze this architectural description for '{project_type}': {user_prompt}.
+                    Convert into a master architectural prompt: 8k, photorealistic, Unreal Engine 5, cinematic lighting, 
+                    highly detailed materials, strictly empty architectural scene, wide angle.
+                    Return only the prompt.
+                    """)
+                    final_arch_prompt = analysis.text
+                    st.write("✅ تم التحليل.")
+                except:
+                    final_arch_prompt = f"{project_type}, {user_prompt}, 8k, photorealistic, cinematic"
+            else:
+                final_arch_prompt = f"{project_type}, {user_prompt}, 8k, photorealistic"
             
-            encoded = urllib.parse.quote(pure_architectural_prompt)
-            img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1280&height=720&nologo=true&seed=777"
+            # طبقة الريندر
+            st.write("🎨 جاري ريندر المشهد...")
+            encoded = urllib.parse.quote(final_arch_prompt)
+            img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1280&height=720&nologo=true&seed=99"
             
-            # عرض التصميم
-            st.success("✨ تم إنجاز التصميم المعماري بنجاح!")
-            st.image(img_url, caption=لفيلا / مشروع: {client_name} - تصاميم المهندس: {engineer}", use_container_width=True)
+            status.update(label="اكتمل العمل بنجاح!", state="complete")
+
+        # عرض النتائج
+        col1, col2 = st.columns([2, 1])
+        with col1:
+            st.image(img_url, caption=f"تصميم: {client_name}", use_container_width=True)
+        
+        with col2:
+            st.markdown("### 📋 التقرير الفني والمواصفات")
+            st.success(f"""
+            **مشروع:** {client_name}  
+            **مهندس:** {engineer_name}  
+            **الطراز:** معاصر - إقليمي  
+            **الحالة:** ريندر نهائي  
             
-            st.divider()
-            
-            # 2. إصدار التقرير الفني والمواصفات التلقائية (الخاصية الثانية الجديدة)
-            st.markdown("### 📋 التقرير الفني والمواصفات المعمارية المعتمدة")
-            st.info(f"""
-            * **إصدار المشروع:** نظام أركان المؤسسي (ARKA-OS)
-            * **المهندس المصمم:** {engineer}
-            * **العميل / الجهة المستفيدة:** {client_name}
-            * **الطراز المعماري:** دمج الحداثة بالمعمار الإقليمي المعاصر.
-            * **المواصفات البصرية المعتمدة:** كتل خرسانية مكشوفة، زجاج بانورامي مزدوج، معالجات تظليل هندسية، وإضاءة غسق سينمائية.
-            * **الحالة:** جاهز للعرض وتقديم العروض الفنية للعملاء.
+            *ملاحظة: هذا النظام هو جزء من سلسلة ARKA-OS لتسريع دورة التصميم المعماري.*
             """)
+            if st.button("تحميل التقرير"):
+                st.info("سيتم تفعيل ميزة التصدير (PDF) في الخطوة القادمة.")
