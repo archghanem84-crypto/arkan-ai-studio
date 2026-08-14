@@ -1,74 +1,53 @@
 import streamlit as st
 import google.generativeai as genai
-import urllib.parse
 import requests
 import base64
 
 # --- إعدادات النظام ---
-st.set_page_config(page_title="منصة أركان المؤسسية", page_icon="🏢", layout="wide")
+st.set_page_config(page_title="ARKA-OS Enterprise", layout="wide")
+st.title("🏢 ARKA-OS | نظام التوليد المعماري المؤسسي")
 
-# استدعاء مفتاح جوجل من الأمان (Secrets)
+# --- مفاتيح الربط ---
 try:
-    api_key = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=api_key)
-    gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-except Exception as e:
-    gemini_model = None
+    GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+    NVIDIA_API_KEY = st.secrets["NVIDIA_API_KEY"] # سنضع هذا في الـ Secrets
+    genai.configure(api_key=GEMINI_API_KEY)
+    gemini = genai.GenerativeModel('gemini-1.5-flash')
+except:
+    st.error("يرجى التأكد من تعريف مفاتيح API في الـ Secrets.")
 
-# --- واجهة المستخدم الاحترافية ---
-st.markdown("<h1 style='text-align: center; color: #10b981;'>🏢 منصة أركان للاستوديو المعماري الذكي</h1>", unsafe_allow_html=True)
-st.sidebar.header("إعدادات المشروع")
+# --- واجهة المستخدم ---
+engineer = st.text_input("اسم المهندس:", value="محمد غانم")
+project_name = st.text_input("اسم المشروع:")
+user_input = st.text_area("وصف الرؤية (مدينة، فيلا، موقع...):")
 
-engineer_name = st.sidebar.text_input("اسم المهندس المسؤول:")
-client_name = st.sidebar.text_input("اسم المشروع / العميل:")
-project_type = st.sidebar.selectbox("نوع المشروع:", ["فيلا سكنية", "مجمع تجاري", "تصميم داخلي", "مبنى إداري"])
-user_prompt = st.text_area("وصف الرؤية المعمارية (اكتب أفكارك):", height=150)
-
-if st.sidebar.button("تشغيل النظام المتكامل ⚡"):
-    if not all([engineer_name, client_name, user_prompt]):
-        st.error("⚠️ يرجى تعبئة كافة بيانات المشروع في القائمة الجانبية.")
-    else:
-        # طبقة التحليل الذكي
-        with st.status("جاري معالجة المشروع...", expanded=True) as status:
-            final_arch_prompt = ""
-            
-            if gemini_model:
-                st.write("🧠 تحليل العقل الذكي...")
-                try:
-                    analysis = gemini_model.generate_content(f"""
-                    Analyze this architectural description for '{project_type}': {user_prompt}.
-                    Convert into a master architectural prompt: 8k, photorealistic, Unreal Engine 5, cinematic lighting, 
-                    highly detailed materials, strictly empty architectural scene, wide angle.
-                    Return only the prompt.
-                    """)
-                    final_arch_prompt = analysis.text
-                    st.write("✅ تم التحليل.")
-                except:
-                    final_arch_prompt = f"{project_type}, {user_prompt}, 8k, photorealistic, cinematic"
-            else:
-                final_arch_prompt = f"{project_type}, {user_prompt}, 8k, photorealistic"
-            
-            # طبقة الريندر
-            st.write("🎨 جاري ريندر المشهد...")
-            encoded = urllib.parse.quote(final_arch_prompt)
-            img_url = f"https://image.pollinations.ai/prompt/{encoded}?width=1280&height=720&nologo=true&seed=99"
-            
-            status.update(label="اكتمل العمل بنجاح!", state="complete")
-
-        # عرض النتائج
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.image(img_url, caption=f"تصميم: {client_name}", use_container_width=True)
+if st.button("🚀 بدء التنفيذ المؤسسي"):
+    with st.status("جاري التحليل المعماري...", expanded=True) as status:
+        # 1. الاستنتاج الذكي للسياق
+        st.write("🧠 استنتاج سياق المشروع...")
+        context_analysis = gemini.generate_content(f"""
+        Analyze this: '{user_input}'.
+        Classify it (e.g., City, Villa, Landscape).
+        Then generate an English render prompt for NVIDIA SD 3.5, 
+        and provide a short technical report (Concept, Materials, Lighting).
+        Return in this format: [PROMPT] | [REPORT]
+        """).text
         
-        with col2:
-            st.markdown("### 📋 التقرير الفني والمواصفات")
-            st.success(f"""
-            **مشروع:** {client_name}  
-            **مهندس:** {engineer_name}  
-            **الطراز:** معاصر - إقليمي  
-            **الحالة:** ريندر نهائي  
-            
-            *ملاحظة: هذا النظام هو جزء من سلسلة ARKA-OS لتسريع دورة التصميم المعماري.*
-            """)
-            if st.button("تحميل التقرير"):
-                st.info("سيتم تفعيل ميزة التصدير (PDF) في الخطوة القادمة.")
+        prompt_part, report_part = context_analysis.split('|')
+        
+        # 2. الربط مع NVIDIA (قوة الحوسبة)
+        st.write("⚙️ جاري الريندر عبر NVIDIA...")
+        invoke_url = "https://integrate.api.nvidia.com/v1/images/generations"
+        headers = {"Authorization": f"Bearer {NVIDIA_API_KEY}", "Content-Type": "application/json"}
+        payload = {"model": "stabilityai/stable-diffusion-3-5-large", "prompt": prompt_part.strip()}
+        
+        response = requests.post(invoke_url, headers=headers, json=payload)
+        
+        if response.status_code == 200:
+            img_data = response.json()['data'][0]['b64_json']
+            status.update(label="اكتمل العمل!", state="complete")
+            st.image(base64.b64decode(img_data), use_container_width=True)
+            st.markdown("### 📋 التقرير الفني الذكي")
+            st.info(report_part.strip())
+        else:
+            st.error(f"فشل الاتصال بـ NVIDIA: {response.text}")
