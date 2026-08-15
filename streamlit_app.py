@@ -4,7 +4,7 @@ from datetime import datetime
 import requests
 import urllib.parse
 
-# --- نظام الـ Chain المتكامل ---
+# --- نظام الـ Chain المتكامل -.--
 def run_arkanos_chain(project_data):
     # المرحلة 1: التحليل الذكي (Gemini)
     gemini_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={st.secrets.get('GEMINI_API_KEY')}"
